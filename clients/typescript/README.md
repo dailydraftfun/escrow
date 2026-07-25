@@ -1,11 +1,11 @@
-# `@openpacksduel/escrow-client`
+# `@dailydraft/escrow-client`
 
-Devnet-only TypeScript builders for OpenPacks Duel escrow v4. The package is the
+Devnet-only TypeScript builders for DailyDraft escrow v4. The package is the
 checked client boundary for the app, API, MCP server, and agents. It derives
 protocol PDAs and encodes instructions with the exact IDL emitted by the
 successful `main` release workflow at source SHA
 `5268637d961672588c70a1c3b1ccbf6d6ab5f5cb` in workflow run
-[`29458570612`](https://github.com/openpacksduel/escrow/actions/runs/29458570612).
+[`29458570612`](https://github.com/dailydraftfun/escrow/actions/runs/29458570612).
 
 This client never creates keypairs, signs transactions, submits transactions,
 or holds assets. It fixes the program address and payment mint to the current
@@ -18,7 +18,7 @@ always supplied by the caller.
 import {
   buildCreatorWsolFundingPlan,
   ESCROW_NETWORK,
-} from "@openpacksduel/escrow-client";
+} from "@dailydraft/escrow-client";
 
 const plan = buildCreatorWsolFundingPlan({
   network: ESCROW_NETWORK,

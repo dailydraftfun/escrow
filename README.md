@@ -1,10 +1,10 @@
-# OpenPacks Duel Escrow
+# DailyDraft Escrow
 
-Open-source Solana escrow for two-player pack-opening duels.
+Open-source Solana escrow for two-player card duels.
 
-This repository is the public protocol boundary for OpenPacks Duel. The web app,
+This repository is the public protocol boundary for DailyDraft. The web app,
 matchmaking service, and pack-provider adapter live separately in
-[`openpacksduel/app`](https://github.com/openpacksduel/app).
+[`dailydraftfun/dailydraft.fun`](https://github.com/dailydraftfun/dailydraft.fun).
 
 > [!WARNING]
 > This is an unaudited **devnet MVP**, not a production deployment. It deliberately
@@ -53,7 +53,7 @@ remains pending a funded devnet authority.
 ## Repository layout
 
 ```text
-programs/openpacksduel-escrow/  Anchor program
+programs/dailydraft-escrow/     Anchor program
 clients/typescript/             Checked IDL and devnet TypeScript client
 docs/protocol.md                State machine and trust boundaries
 docs/threat-model.md            Assets, adversaries, and mitigations
@@ -74,7 +74,7 @@ cargo test --workspace
 
 Do not treat a successful build as an audit. A deployable release requires the
 controls listed in [SECURITY.md](SECURITY.md) and the open hardening work in
-[issue #3](https://github.com/openpacksduel/escrow/issues/3).
+[issue #3](https://github.com/dailydraftfun/escrow/issues/3).
 
 App, API, MCP, and agent integrations should use the checked builders in
 [`clients/typescript`](clients/typescript) instead of hand-rolling Anchor
@@ -82,7 +82,7 @@ instruction bytes or PDA seeds. The package fixes the current canonical program
 ID and devnet WSOL payment mint, returns unsigned instruction plans, and rejects
 unsupported card standards. Its IDL provenance is tied to source SHA
 `5268637d961672588c70a1c3b1ccbf6d6ab5f5cb` and workflow run
-[`29458570612`](https://github.com/openpacksduel/escrow/actions/runs/29458570612).
+[`29458570612`](https://github.com/dailydraftfun/escrow/actions/runs/29458570612).
 The v4 client includes terminal custody-vault close builders and an exact-layout
 Duel account decoder. It remains pinned to that checksummed release until a new
 program artifact and IDL are produced; source instructions must not be

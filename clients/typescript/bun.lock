@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@openpacksduel/escrow-client",
+      "name": "@dailydraft/escrow-client",
       "dependencies": {
         "@anchor-lang/core": "1.1.2",
         "@solana/spl-token": "0.4.15",

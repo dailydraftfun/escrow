@@ -37,7 +37,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROGRAM_NAME: openpacksduel_escrow
+  PROGRAM_NAME: dailydraft_escrow
   PROGRAM_ID: Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS
   EXPECTED_DEPLOY_AUTHORITY: Hk2BD9SiMsePPgbiX85BDuZRX9BbVsde7sdYR7RYgZVo
   DEVNET_RPC_URL: https://api.devnet.solana.com
@@ -96,8 +96,8 @@ jobs:
 
       - name: Build program and IDL
         run: |
-          test "$(grep -Fc "declare_id!(\"${PROGRAM_ID}\");" programs/openpacksduel-escrow/src/lib.rs)" = 1
-          test "$(grep -Fc "openpacksduel_escrow = \"${PROGRAM_ID}\"" Anchor.toml)" = 2
+          test "$(grep -Fc "declare_id!(\"${PROGRAM_ID}\");" programs/dailydraft-escrow/src/lib.rs)" = 1
+          test "$(grep -Fc "dailydraft_escrow = \"${PROGRAM_ID}\"" Anchor.toml)" = 2
           anchor build
 
       - name: Run transaction-level program tests
@@ -171,7 +171,7 @@ jobs:
       - name: Upload program artifact
         uses: actions/upload-artifact@v7
         with:
-          name: openpacksduel-escrow-${{ github.sha }}
+          name: dailydraft-escrow-${{ github.sha }}
           path: release/
           if-no-files-found: error
           retention-days: 30
@@ -211,7 +211,7 @@ jobs:
       - name: Download program artifact
         uses: actions/download-artifact@v8
         with:
-          name: openpacksduel-escrow-${{ github.sha }}
+          name: dailydraft-escrow-${{ github.sha }}
           path: release
 
       - name: Verify artifact checksums and identity
@@ -429,7 +429,7 @@ jobs:
       - name: Upload deployment receipt
         uses: actions/upload-artifact@v7
         with:
-          name: openpacksduel-escrow-devnet-verification-${{ github.sha }}
+          name: dailydraft-escrow-devnet-verification-${{ github.sha }}
           path: verification/
           if-no-files-found: error
           retention-days: 90

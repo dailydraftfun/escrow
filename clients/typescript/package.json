@@ -1,7 +1,7 @@
 {
-  "name": "@openpacksduel/escrow-client",
+  "name": "@dailydraft/escrow-client",
   "version": "0.1.0",
-  "description": "Devnet-only TypeScript builders for the OpenPacks Duel escrow",
+  "description": "Devnet-only TypeScript builders for the DailyDraft escrow",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

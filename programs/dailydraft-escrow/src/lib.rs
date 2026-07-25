@@ -16,7 +16,7 @@ const MAX_DUEL_DURATION_SECONDS: i64 = 7 * 24 * 60 * 60;
 const MAX_PROVIDER_CLOCK_SKEW_SECONDS: i64 = 30;
 
 #[program]
-pub mod openpacksduel_escrow {
+pub mod dailydraft_escrow {
     use super::*;
 
     pub fn initialize_duel(ctx: Context<InitializeDuel>, args: InitializeDuelArgs) -> Result<()> {

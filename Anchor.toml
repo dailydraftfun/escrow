@@ -1,8 +1,8 @@
 [programs.localnet]
-openpacksduel_escrow = "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS"
+dailydraft_escrow = "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS"
 
 [programs.devnet]
-openpacksduel_escrow = "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS"
+dailydraft_escrow = "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS"
 
 [provider]
 cluster = "devnet"
