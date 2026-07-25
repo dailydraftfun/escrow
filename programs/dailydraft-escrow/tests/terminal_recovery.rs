@@ -5,7 +5,7 @@ use anchor_lang::{
     solana_program::{program_option::COption, system_instruction, system_program},
     InstructionData, ToAccountMetas,
 };
-use openpacksduel_escrow::{
+use dailydraft_escrow::{
     accounts, instruction, AssetKind, DepositCardAssetArgs, InitializeDuelArgs, PlayerRole,
     SubmitResultArgs,
 };
@@ -61,7 +61,7 @@ fn program_test() -> (ProgramTest, Fixture) {
     let opponent_card_win_destination = Pubkey::new_unique();
     let rent = Rent::default();
 
-    let mut test = ProgramTest::new("openpacksduel_escrow", openpacksduel_escrow::id(), None);
+    let mut test = ProgramTest::new("dailydraft_escrow", dailydraft_escrow::id(), None);
     test.prefer_bpf(false);
     test.add_program(
         "spl_token",
@@ -285,10 +285,10 @@ fn token_account(
 fn duel_addresses(creator: Pubkey) -> (Pubkey, Pubkey) {
     let (duel, _) = Pubkey::find_program_address(
         &[b"duel", creator.as_ref(), &NONCE.to_le_bytes()],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let (payment_vault, _) =
-        Pubkey::find_program_address(&[b"vault", duel.as_ref()], &openpacksduel_escrow::id());
+        Pubkey::find_program_address(&[b"vault", duel.as_ref()], &dailydraft_escrow::id());
     (duel, payment_vault)
 }
 
@@ -299,7 +299,7 @@ fn initialize_duel_instruction(
     now: i64,
 ) -> anchor_lang::solana_program::instruction::Instruction {
     anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::InitializeDuel {
             creator: fixture.creator.pubkey(),
             duel,
@@ -331,7 +331,7 @@ fn fund_duel_instruction(
     payment_vault: Pubkey,
 ) -> anchor_lang::solana_program::instruction::Instruction {
     anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::FundDuel {
             player,
             duel,
@@ -426,10 +426,10 @@ async fn freezeable_legacy_card_mint_is_rejected_without_moving_the_asset() {
 
     let (card_vault, _) = Pubkey::find_program_address(
         &[b"card-vault", duel.as_ref(), b"creator"],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let deposit = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::DepositCardAsset {
             depositor: fixture.creator.pubkey(),
             duel,
@@ -509,7 +509,7 @@ async fn terminal_payment_dust_sweeps_to_committed_fee_recipient_before_close() 
         .expect("unsolicited raw SOL transfer must succeed");
 
     let cancel = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::CancelUnmatched {
             creator: fixture.creator.pubkey(),
             duel,
@@ -526,7 +526,7 @@ async fn terminal_payment_dust_sweeps_to_committed_fee_recipient_before_close() 
         .expect("tracked creator fee must refund on cancellation");
 
     let close = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::ClosePaymentVault {
             caller: context.payer.pubkey(),
             duel,
@@ -567,7 +567,7 @@ async fn redeposited_terminal_card_returns_to_recorded_player_before_close() {
     let (duel, payment_vault) = duel_addresses(fixture.creator.pubkey());
     let (card_vault, _) = Pubkey::find_program_address(
         &[b"card-vault", duel.as_ref(), b"creator"],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let now = context
         .banks_client
@@ -610,7 +610,7 @@ async fn redeposited_terminal_card_returns_to_recorded_player_before_close() {
     .expect("both exact fee deposits must succeed");
 
     let deposit = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::DepositCardAsset {
             depositor: fixture.creator.pubkey(),
             duel,
@@ -648,7 +648,7 @@ async fn redeposited_terminal_card_returns_to_recorded_player_before_close() {
     assert_eq!(observed_expired_clock.unix_timestamp, now + 600);
 
     let refund = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::RefundExpiredCard {
             caller: context.payer.pubkey(),
             duel,
@@ -683,7 +683,7 @@ async fn redeposited_terminal_card_returns_to_recorded_player_before_close() {
         .expect("unsolicited card redeposit must succeed");
 
     let close = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::CloseCardVault {
             caller: context.payer.pubkey(),
             duel,
@@ -723,11 +723,11 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
     let (duel, payment_vault) = duel_addresses(fixture.creator.pubkey());
     let (creator_card_vault, _) = Pubkey::find_program_address(
         &[b"card-vault", duel.as_ref(), b"creator"],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let (opponent_card_vault, _) = Pubkey::find_program_address(
         &[b"card-vault", duel.as_ref(), b"opponent"],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let provider_request_id = [7; 32];
     let (result_commitment, _) = Pubkey::find_program_address(
@@ -736,7 +736,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
             fixture.provider_signer.pubkey().as_ref(),
             provider_request_id.as_ref(),
         ],
-        &openpacksduel_escrow::id(),
+        &dailydraft_escrow::id(),
     );
     let now = context
         .banks_client
@@ -779,7 +779,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
     .expect("both exact fee deposits must succeed");
 
     let creator_deposit = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::DepositCardAsset {
             depositor: fixture.creator.pubkey(),
             duel,
@@ -799,7 +799,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
         .data(),
     };
     let opponent_deposit = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::DepositCardAsset {
             depositor: fixture.opponent.pubkey(),
             duel,
@@ -832,7 +832,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
         .await
         .expect("result clock query must succeed");
     let submit_result = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::SubmitResult {
             provider_signer: fixture.provider_signer.pubkey(),
             duel,
@@ -863,7 +863,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
         .expect("provider result must commit a creator win");
 
     let settle = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::SettleDuel {
             caller: context.payer.pubkey(),
             duel,
@@ -908,7 +908,7 @@ async fn settled_losing_role_card_returns_to_winner_before_close() {
         .expect("winner must be able to redeposit the losing-role card");
 
     let close = anchor_lang::solana_program::instruction::Instruction {
-        program_id: openpacksduel_escrow::id(),
+        program_id: dailydraft_escrow::id(),
         accounts: accounts::CloseCardVault {
             caller: context.payer.pubkey(),
             duel,

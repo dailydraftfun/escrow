@@ -1,14 +1,14 @@
 [package]
-name = "openpacksduel-escrow"
+name = "dailydraft-escrow"
 version = "0.1.0"
-description = "Open-source Solana escrow for authenticated pack-opening duels"
+description = "Open-source Solana escrow for authenticated card duels"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/openpacksduel/escrow"
+repository = "https://github.com/dailydraftfun/escrow"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "openpacksduel_escrow"
+name = "dailydraft_escrow"
 
 [features]
 anchor-debug = []

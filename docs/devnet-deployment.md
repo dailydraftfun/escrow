@@ -53,7 +53,7 @@ temporary file:
     --no-bip39-passphrase \
     --outfile "$buffer_keypair_path"
   gh secret set SOLANA_DEVNET_BUFFER_KEYPAIR_JSON \
-    --repo openpacksduel/escrow \
+    --repo dailydraftfun/escrow \
     --env devnet \
     < "$buffer_keypair_path"
 )
@@ -98,8 +98,8 @@ The build job pins and verifies the download checksums for Anchor `1.1.2` and
 Agave `3.1.10`, and uses Rust `1.89.0`. Its artifact contains only public build
 outputs:
 
-- `openpacksduel_escrow.so`
-- `openpacksduel_escrow.json` (Anchor IDL)
+- `dailydraft_escrow.so`
+- `dailydraft_escrow.json` (Anchor IDL)
 - `source-Cargo.lock`
 - `build-manifest.json`
 - `SHA256SUMS`
