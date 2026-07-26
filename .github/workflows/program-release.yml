@@ -18,13 +18,21 @@ on:
       - programs/**
   workflow_dispatch:
     inputs:
+      cluster:
+        description: Cluster to deploy to. Selects the GitHub environment holding that cluster's genesis hash, upgrade authority, RPC endpoint, and keypairs.
+        required: true
+        default: devnet
+        type: choice
+        options:
+          - devnet
+          - mainnet
       deploy:
-        description: Deploy the artifact built from this workflow ref to devnet
+        description: Deploy the artifact built from this workflow ref to the selected cluster
         required: true
         default: false
         type: boolean
       confirmation:
-        description: Enter devnet:Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS to authorize deployment
+        description: 'Enter <cluster>:Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS to authorize deployment (example: devnet:Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS)'
         required: false
         default: ''
         type: string
@@ -36,11 +44,14 @@ concurrency:
   group: program-release-${{ github.ref }}
   cancel-in-progress: false
 
+# Anything cluster-specific is deliberately absent here. Workflow-level `env` outranks a GitHub
+# environment, so a constant defined at this scope cannot be overridden per cluster and would leak
+# devnet's genesis hash and upgrade authority into a mainnet deploy. Those values live as variables
+# on the `devnet` / `mainnet` environments instead. The program ID stays: a program keypair yields
+# the same address on every cluster, so it does not diverge.
 env:
   PROGRAM_NAME: dailydraft_escrow
   PROGRAM_ID: Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS
-  EXPECTED_DEPLOY_AUTHORITY: Hk2BD9SiMsePPgbiX85BDuZRX9BbVsde7sdYR7RYgZVo
-  DEVNET_GENESIS_HASH: EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG
   ANCHOR_VERSION: 1.1.2
   ANCHOR_LINUX_SHA256: fdea9979629e9416e5f5e5622ff6c11b8c691d1e559581ece368e903c0c980c1
   AGAVE_VERSION: 3.1.10
@@ -87,7 +98,6 @@ jobs:
 
       - name: Verify toolchain
         run: |
-          test "$DEVNET_GENESIS_HASH" = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"
           test "$(anchor --version)" = "anchor-cli ${ANCHOR_VERSION}"
           test "$(solana --version | awk '{print $2}')" = "${AGAVE_VERSION}"
           anchor --version
@@ -176,31 +186,65 @@ jobs:
           retention-days: 30
           compression-level: 0
 
-  deploy-devnet:
-    name: Deploy and verify devnet
+  deploy:
+    name: Deploy and verify ${{ inputs.cluster }}
     if: github.event_name == 'workflow_dispatch' && inputs.deploy
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: devnet
+    # Selects which set of cluster variables and deploy keypairs the job can see. Everything below
+    # resolves out of this environment, so the cluster is chosen in exactly one place.
+    environment: ${{ inputs.cluster }}
     env:
+      CLUSTER: ${{ inputs.cluster }}
       # `solana program deploy --use-rpc` (below) funnels the artifact through ~450 sequential chunk
-      # writes on this endpoint. The public devnet RPC rate-limits well under that, so the upload
-      # fails partway and strands a buffer account. Point at the dedicated provider when configured.
+      # writes on this endpoint. Public RPCs rate-limit well under that, so the upload fails partway
+      # and strands a buffer account. Point at the dedicated provider when configured.
       # This has to stay a secret rather than a var: the URL embeds an api-key, this repository is
       # public, and `curl --show-error` prints the failing URL. Only secrets are masked in logs.
-      DEVNET_RPC_URL: ${{ secrets.SOLANA_DEVNET_RPC_URL || 'https://api.devnet.solana.com' }}
+      SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL || vars.SOLANA_FALLBACK_RPC_URL }}
+      EXPECTED_GENESIS_HASH: ${{ vars.SOLANA_GENESIS_HASH }}
+      EXPECTED_DEPLOY_AUTHORITY: ${{ vars.SOLANA_DEPLOY_AUTHORITY }}
     steps:
+      # The deploy job only ever runs on a manual dispatch, so a mis-scoped variable or an
+      # environment that was never provisioned would otherwise surface halfway through a release
+      # with a confusing failure. Resolve everything up front and name what is missing.
+      #
+      # The keypair secrets keep the cluster in their name and are looked up through the indexed
+      # `secrets` context. Secret values cannot be read back through the API, so renaming them to
+      # something cluster-agnostic would mean re-uploading three signing keys by hand for no
+      # behavioural gain. Public, readable values (genesis hash, upgrade authority) are plain
+      # environment variables instead and carry no cluster in their name.
+      - name: Verify cluster configuration resolved
+        env:
+          AUTHORITY_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_DEPLOY_AUTHORITY_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
+          BUFFER_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_BUFFER_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
+          PROGRAM_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_PROGRAM_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
+        run: |
+          set -euo pipefail
+          set +x
+          missing=()
+          test -n "$SOLANA_RPC_URL" || missing+=("secrets.SOLANA_RPC_URL or vars.SOLANA_FALLBACK_RPC_URL")
+          test -n "$EXPECTED_GENESIS_HASH" || missing+=("vars.SOLANA_GENESIS_HASH")
+          test -n "$EXPECTED_DEPLOY_AUTHORITY" || missing+=("vars.SOLANA_DEPLOY_AUTHORITY")
+          test -n "$AUTHORITY_KEYPAIR_JSON" || missing+=("secrets.SOLANA_*_DEPLOY_AUTHORITY_KEYPAIR_JSON")
+          test -n "$BUFFER_KEYPAIR_JSON" || missing+=("secrets.SOLANA_*_BUFFER_KEYPAIR_JSON")
+          test -n "$PROGRAM_KEYPAIR_JSON" || missing+=("secrets.SOLANA_*_PROGRAM_KEYPAIR_JSON")
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::The '${CLUSTER}' environment is missing: ${missing[*]}" >&2
+            exit 1
+          fi
+
       - name: Confirm immutable deployment target
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          test "$CONFIRMATION" = "devnet:${PROGRAM_ID}"
+          test "$CONFIRMATION" = "${CLUSTER}:${PROGRAM_ID}"
           response=$(curl --fail --silent --show-error --max-time 20 \
             -H 'content-type: application/json' \
             --data '{"jsonrpc":"2.0","id":1,"method":"getGenesisHash"}' \
-            "$DEVNET_RPC_URL")
-          test "$(jq -r '.result' <<< "$response")" = "$DEVNET_GENESIS_HASH"
+            "$SOLANA_RPC_URL")
+          test "$(jq -r '.result' <<< "$response")" = "$EXPECTED_GENESIS_HASH"
 
       - name: Install pinned Agave toolchain
         run: |
@@ -229,18 +273,18 @@ jobs:
       - name: Deploy program
         id: deploy
         env:
-          AUTHORITY_KEYPAIR_JSON: ${{ secrets.SOLANA_DEVNET_DEPLOY_AUTHORITY_KEYPAIR_JSON }}
-          BUFFER_KEYPAIR_JSON: ${{ secrets.SOLANA_DEVNET_BUFFER_KEYPAIR_JSON }}
-          PROGRAM_KEYPAIR_JSON: ${{ secrets.SOLANA_DEVNET_PROGRAM_KEYPAIR_JSON }}
+          AUTHORITY_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_DEPLOY_AUTHORITY_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
+          BUFFER_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_BUFFER_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
+          PROGRAM_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_PROGRAM_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
         run: |
           set -euo pipefail
           set +x
           umask 077
-          authority_path="$RUNNER_TEMP/devnet-authority.json"
-          buffer_keypair_path="$RUNNER_TEMP/devnet-buffer-keypair.json"
+          authority_path="$RUNNER_TEMP/deploy-authority.json"
+          buffer_keypair_path="$RUNNER_TEMP/buffer-keypair.json"
           deployment_error_path="$RUNNER_TEMP/deployment.stderr"
           deployment_output_path="$RUNNER_TEMP/deployment.json"
-          program_keypair_path="$RUNNER_TEMP/devnet-program-keypair.json"
+          program_keypair_path="$RUNNER_TEMP/program-keypair.json"
           cleanup() {
             rm -f \
               "$authority_path" \
@@ -270,12 +314,12 @@ jobs:
           account_response=$(curl --fail --silent --show-error --max-time 20 \
             -H 'content-type: application/json' \
             --data "$account_payload" \
-            "$DEVNET_RPC_URL")
+            "$SOLANA_RPC_URL")
           jq -e '.error == null' <<< "$account_response" > /dev/null
 
           if jq -e '.result.value != null' <<< "$account_response" > /dev/null; then
             program_info=$(solana program show "$PROGRAM_ID" \
-              --url "$DEVNET_RPC_URL" \
+              --url "$SOLANA_RPC_URL" \
               --keypair "$authority_path" \
               --output json-compact)
             test "$(jq -r '.programId' <<< "$program_info")" = "$PROGRAM_ID"
@@ -300,7 +344,7 @@ jobs:
           buffer_response=$(curl --fail --silent --show-error --max-time 20 \
             -H 'content-type: application/json' \
             --data "$buffer_payload" \
-            "$DEVNET_RPC_URL")
+            "$SOLANA_RPC_URL")
           jq -e '.error == null' <<< "$buffer_response" > /dev/null
           if jq -e '.result.value != null' <<< "$buffer_response" > /dev/null; then
             test "$(jq -r '.result.value.owner' <<< "$buffer_response")" = \
@@ -313,7 +357,7 @@ jobs:
           fi
 
           rent_lamports=$(solana rent "$artifact_bytes" \
-            --url "$DEVNET_RPC_URL" \
+            --url "$SOLANA_RPC_URL" \
             --keypair "$authority_path" \
             --lamports \
             --output json-compact | jq -r '.rentExemptMinimumLamports')
@@ -328,7 +372,7 @@ jobs:
           fi
           recommended_lamports=$((buffer_funding_lamports + programdata_funding_lamports + 10000000))
           balance_lamports=$(solana balance "$EXPECTED_DEPLOY_AUTHORITY" \
-            --url "$DEVNET_RPC_URL" \
+            --url "$SOLANA_RPC_URL" \
             --keypair "$authority_path" \
             --lamports \
             --output json-compact | jq -r '.lamports')
@@ -339,7 +383,7 @@ jobs:
           fi
 
           if ! solana program deploy "$artifact" \
-              --url "$DEVNET_RPC_URL" \
+              --url "$SOLANA_RPC_URL" \
               --keypair "$authority_path" \
               --fee-payer "$authority_path" \
               --upgrade-authority "$authority_path" \
@@ -351,7 +395,7 @@ jobs:
               --output json \
               > "$deployment_output_path" \
               2> "$deployment_error_path"; then
-            echo "::error::Devnet deployment failed. Raw Solana CLI output was suppressed because it can contain key-recovery material." >&2
+            echo "::error::${CLUSTER} deployment failed. Raw Solana CLI output was suppressed because it can contain key-recovery material." >&2
             echo "Retry this workflow with the same ref and configured buffer keypair to resume the write." >&2
             exit 1
           fi
@@ -366,7 +410,7 @@ jobs:
 
       - name: Verify deployed program and bytecode
         env:
-          AUTHORITY_KEYPAIR_JSON: ${{ secrets.SOLANA_DEVNET_DEPLOY_AUTHORITY_KEYPAIR_JSON }}
+          AUTHORITY_KEYPAIR_JSON: ${{ secrets[format('SOLANA_{0}_DEPLOY_AUTHORITY_KEYPAIR_JSON', inputs.cluster == 'devnet' && 'DEVNET' || 'MAINNET')] }}
           BUFFER_PUBKEY: ${{ steps.deploy.outputs.buffer_pubkey }}
           BUFFER_REUSED: ${{ steps.deploy.outputs.buffer_reused }}
           DEPLOYMENT_KIND: ${{ steps.deploy.outputs.deployment_kind }}
@@ -374,7 +418,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          authority_path="$RUNNER_TEMP/devnet-authority.json"
+          authority_path="$RUNNER_TEMP/deploy-authority.json"
           onchain_program="$RUNNER_TEMP/onchain-${PROGRAM_NAME}.so"
           cleanup() {
             rm -f "$authority_path" "$onchain_program"
@@ -384,7 +428,7 @@ jobs:
 
           mkdir -p verification
           solana program show "$PROGRAM_ID" \
-            --url "$DEVNET_RPC_URL" \
+            --url "$SOLANA_RPC_URL" \
             --keypair "$authority_path" \
             --output json-compact > verification/program-info.json
           test "$(jq -r '.programId' verification/program-info.json)" = "$PROGRAM_ID"
@@ -392,15 +436,15 @@ jobs:
           test "$(jq -r '.authority' verification/program-info.json)" = "$EXPECTED_DEPLOY_AUTHORITY"
 
           solana program dump "$PROGRAM_ID" "$onchain_program" \
-            --url "$DEVNET_RPC_URL" \
+            --url "$SOLANA_RPC_URL" \
             --keypair "$authority_path"
           artifact_sha=$(sha256sum "release/${PROGRAM_NAME}.so" | awk '{print $1}')
           onchain_sha=$(sha256sum "$onchain_program" | awk '{print $1}')
           test "$onchain_sha" = "$artifact_sha"
 
           jq -n \
-            --arg cluster devnet \
-            --arg genesisHash "$DEVNET_GENESIS_HASH" \
+            --arg cluster "$CLUSTER" \
+            --arg genesisHash "$EXPECTED_GENESIS_HASH" \
             --arg programId "$PROGRAM_ID" \
             --arg authority "$EXPECTED_DEPLOY_AUTHORITY" \
             --arg artifactSha256 "$artifact_sha" \
@@ -421,7 +465,7 @@ jobs:
             }' > verification/deployment-verification.json
 
           {
-            echo "## Devnet deployment verified"
+            echo "## ${CLUSTER} deployment verified"
             echo
             echo "- Program: \`$PROGRAM_ID\`"
             echo "- Upgrade authority: \`$EXPECTED_DEPLOY_AUTHORITY\`"
@@ -435,7 +479,7 @@ jobs:
       - name: Upload deployment receipt
         uses: actions/upload-artifact@v7
         with:
-          name: dailydraft-escrow-devnet-verification-${{ github.sha }}
+          name: dailydraft-escrow-${{ inputs.cluster }}-verification-${{ github.sha }}
           path: verification/
           if-no-files-found: error
           retention-days: 90
