@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "repository": "https://github.com/openpacksduel/escrow",
-  "sourceSha": "5268637d961672588c70a1c3b1ccbf6d6ab5f5cb",
-  "workflowRunId": 29458570612,
-  "workflowRunUrl": "https://github.com/openpacksduel/escrow/actions/runs/29458570612",
-  "artifactName": "openpacksduel-escrow-5268637d961672588c70a1c3b1ccbf6d6ab5f5cb",
-  "artifactSha256SumsFileSha256": "56170c9830591a7900592bed94cb1e8affc043f435da80bf9b6df620e7123f39",
+  "repository": "https://github.com/dailydraftfun/escrow",
+  "sourceSha": "db8d0eec1d0ed856a58e3a40b34e24b62023bb49",
+  "workflowRunId": 30179550427,
+  "workflowRunUrl": "https://github.com/dailydraftfun/escrow/actions/runs/30179550427",
+  "artifactName": "dailydraft-escrow-db8d0eec1d0ed856a58e3a40b34e24b62023bb49",
+  "artifactSha256SumsFileSha256": "15432d424c491dbed581fe359acf991efb3080927e397ef924bb3586c3ba48d7",
   "files": {
-    "openpacksduel_escrow.json": "f16eda95787367db629051203dac8a5db61794f1c048528ecfecd868245e070d",
-    "build-manifest.json": "1555ead5de9c038d80658dcdd58abba0e6d37ccf6d1f5925fc06b20cb957d4ef",
-    "openpacksduel_escrow.so": "38771c7e8848958ad59efb56a02ba7f8e6354deff6513e1e4bd2bf71c2d1b2bf",
-    "source-Cargo.lock": "02d9339fd4862acd6443e02e015b6b39a76773284a26b52c350a4c4c567a40ff"
+    "dailydraft_escrow.json": "dbd27bbc7b3c5b52b5d7a839c7c53daef09eb7228be99525873ffe2b4d6058d8",
+    "build-manifest.json": "39a8232c65a5c2c3eca80b4138e2e93d556ef217f3cf20f87a06a0b6d9886ed3",
+    "dailydraft_escrow.so": "563af7190716ceb63acd3b59182cc39c0f1ca404878b3de7d5f8af7685f4ba33",
+    "source-Cargo.lock": "85044ffd9a75a30dd321c3133aac8c4d508ae4d78707a41a05e0e17cb7afdced"
   }
 }

@@ -1,11 +1,11 @@
 {
   "address": "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS",
   "metadata": {
-    "name": "openpacksduel_escrow",
+    "name": "dailydraft_escrow",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "Open-source Solana escrow for authenticated pack-opening duels",
-    "repository": "https://github.com/openpacksduel/escrow"
+    "description": "Open-source Solana escrow for authenticated card duels",
+    "repository": "https://github.com/dailydraftfun/escrow"
   },
   "instructions": [
     {
