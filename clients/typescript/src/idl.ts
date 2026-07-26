@@ -3,7 +3,7 @@ import {
   BorshInstructionCoder,
   type Idl,
 } from "@anchor-lang/core";
-import checkedIdl from "../idl/openpacksduel_escrow.json" with { type: "json" };
+import checkedIdl from "../idl/dailydraft_escrow.json" with { type: "json" };
 
 const EXPECTED_ADDRESS = "Co198eFfQcmn1WzZRnHV6jxcSLBDCv1qNfPfiBYdCLfS";
 

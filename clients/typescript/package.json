@@ -16,7 +16,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./idl": "./idl/openpacksduel_escrow.json",
+    "./idl": "./idl/dailydraft_escrow.json",
     "./provenance": "./idl/provenance.json"
   },
   "scripts": {
