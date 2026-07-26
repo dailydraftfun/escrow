@@ -187,9 +187,10 @@ jobs:
           compression-level: 0
 
   deploy:
-    # `inputs` is null on push and pull_request, where this job only ever skips. Without the
-    # fallback the checks list shows the raw expression instead of a name.
-    name: Deploy and verify ${{ inputs.cluster || 'cluster' }}
+    # Deliberately static. GitHub does not evaluate an expression in a job `name` on events where
+    # `inputs` is null, so any interpolation here renders as raw `${{ ... }}` in the checks list of
+    # every push and pull request. The cluster is visible on the run itself via the environment.
+    name: Deploy and verify program
     if: github.event_name == 'workflow_dispatch' && inputs.deploy
     needs: build
     runs-on: ubuntu-latest
