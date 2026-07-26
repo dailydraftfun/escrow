@@ -187,7 +187,9 @@ jobs:
           compression-level: 0
 
   deploy:
-    name: Deploy and verify ${{ inputs.cluster }}
+    # `inputs` is null on push and pull_request, where this job only ever skips. Without the
+    # fallback the checks list shows the raw expression instead of a name.
+    name: Deploy and verify ${{ inputs.cluster || 'cluster' }}
     if: github.event_name == 'workflow_dispatch' && inputs.deploy
     needs: build
     runs-on: ubuntu-latest
